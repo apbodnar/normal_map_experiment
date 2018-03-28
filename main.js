@@ -7,8 +7,9 @@ function NormalMapExperiment() {
   let assets = {};
   let programs = {};
   let textures = {};
-  let perspective = mat4.perspective(mat4.create(), 1.57, window.innerWidth / window.innerHeight, 0.1, 10) ;
-
+  let ticks = 0;
+  let perspective = mat4.perspective(mat4.create(), 1, window.innerWidth / window.innerHeight, 0.1, 5);
+  let worldView = mat4.create();
   let isFramed = !!window.frameElement;
   let active = !isFramed;
 
@@ -53,7 +54,7 @@ function NormalMapExperiment() {
   function initPrograms(assets) {
     programs.draw = initProgram(
       "shader/draw",
-      ["normalMapTex", "diffuseMapTex", "perspective"],
+      ["normalMapTex", "diffuseMapTex", "perspective", "worldView"],
       ["pos", "normal", "uv", "tangent"],
       assets
     );
@@ -61,12 +62,15 @@ function NormalMapExperiment() {
 
   function createImageTexture(image){
     let texture = gl.createTexture();
+    let ext = gl.getExtension("EXT_texture_filter_anisotropic");
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, 8);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
     gl.bindTexture(gl.TEXTURE_2D, null);
     return texture;
@@ -81,6 +85,7 @@ function NormalMapExperiment() {
     let verts = [];
     let norms = [];
     let uvs = [];
+    let tangents = [];
     parsed.forEach((triangle) => {
       triangle.verts.forEach((v) => {
         v.forEach((vv) => { verts.push(vv)});
@@ -93,10 +98,15 @@ function NormalMapExperiment() {
     });
     parsed.forEach((triangle) => {
       triangle.uvs.forEach((u) => {
-        u.forEach((uu) => { uvs.push(u)});
+        u.forEach((uu) => { uvs.push(uu)});
       })
     });
-    console.log(verts);
+    parsed.forEach((triangle) => {
+      triangle.tangents.forEach((t) => {
+        t.forEach((tt) => { tangents.push(tt)});
+      })
+    });
+    console.log(verts, norms, uvs, tangents);
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
     gl.vertexAttribPointer(programs.draw.attributes.pos, 3, gl.FLOAT, false, 0, 0);
@@ -113,11 +123,11 @@ function NormalMapExperiment() {
     gl.enableVertexAttribArray(programs.draw.attributes.uv);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, tangentBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tangents), gl.STATIC_DRAW);
     gl.vertexAttribPointer(programs.draw.attributes.tangent, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(programs.draw.attributes.tangent);
-    textures.normalMapTex = createImageTexture(assets["texture/knit_diffuse.jpg"]);
-    textures.diffuseMapTex = createImageTexture(assets["texture/knit_normal.jpg"]);
+    textures.diffuseMapTex = createImageTexture(assets["texture/turtle.png"]);
+    textures.normalMapTex = createImageTexture(assets["texture/knit_normal.jpg"]);
   }
 
   function initEvents() {
@@ -141,31 +151,31 @@ function NormalMapExperiment() {
 
   function draw() {
     let program = programs.draw;
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.useProgram(program);
-    gl.vertexAttribPointer(program.attributes.pos, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(program.attributes.pos);
-    gl.vertexAttribPointer(program.attributes.normal, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(program.attributes.normal);
-    gl.vertexAttribPointer(program.attributes.uv, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(program.attributes.uv);
-    gl.vertexAttribPointer(program.attributes.tangent, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(program.attributes.tangent);
-
+    // gl.vertexAttribPointer(program.attributes.pos, 3, gl.FLOAT, false, 0, 0);
+    // gl.enableVertexAttribArray(program.attributes.pos);
+    // gl.vertexAttribPointer(program.attributes.normal, 3, gl.FLOAT, false, 0, 0);
+    // gl.enableVertexAttribArray(program.attributes.normal);
+    // gl.vertexAttribPointer(program.attributes.uv, 2, gl.FLOAT, false, 0, 0);
+    // gl.enableVertexAttribArray(program.attributes.uv);
+    // gl.vertexAttribPointer(program.attributes.tangent, 3, gl.FLOAT, false, 0, 0);
+    // gl.enableVertexAttribArray(program.attributes.tangent);
     gl.uniformMatrix4fv(program.uniforms.perspective, false, perspective);
+    gl.uniformMatrix4fv(program.uniforms.worldView, false, worldView);
     gl.activeTexture(gl.TEXTURE0);
-    //console.log(textures);
-    //debugger;
     gl.bindTexture(gl.TEXTURE_2D, textures.diffuseMapTex);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, textures.normalMapTex);
     gl.uniform1i(program.uniforms.diffuseMapTex, 0);
     gl.uniform1i(program.uniforms.normalMapTex, 1);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 31248/3);
+    gl.drawArrays(gl.TRIANGLES, 0, 31248/3);
   }
 
 
   function tick() {
+    worldView = mat4.rotateY(worldView, mat4.create(), ++ticks * 0.01);
     requestAnimationFrame(tick);
     draw();
   }
@@ -178,6 +188,7 @@ function NormalMapExperiment() {
     initPrograms(res);
     initBuffers(res);
     initEvents();
+    console.log(programs.draw.attributes)
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.disable(gl.BLEND);
@@ -191,6 +202,7 @@ function NormalMapExperiment() {
     "shader/draw.fs",
     "texture/knit_diffuse.jpg",
     "texture/knit_normal.jpg",
+    "texture/turtle.png",
     "mesh/turtle.obj"
   ]);
   Utility.loadAll(Array.from(pathSet), start);

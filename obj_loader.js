@@ -1,3 +1,5 @@
+import {Vec3} from './vector.js'
+
 export function parseMesh(objText) {
   let lines = objText.split('\n');
   let vertices = [];
@@ -62,5 +64,38 @@ export class Triangle {
     this.verts = [v1, v2, v3];
     this.uvs = [uv1, uv2, uv3];
     this.normals = [n1, n2, n3];
+    this.computeTangents();
+  }
+
+  computeTangents(){
+    //debugger;
+    let dv1 = Vec3.sub(this.verts[1], this.verts[0]);
+    let dv2 = Vec3.sub(this.verts[2], this.verts[0]);
+    let dt1 = Vec3.sub(this.uvs[1], this.uvs[0]);
+    let dt2 = Vec3.sub(this.uvs[2], this.uvs[0]);
+    let r = 1.0 / (dt1[0] * dt2[1] - dt1[1] * dt2[0]);
+    let tangent = Vec3.normalize(Vec3.sub(Vec3.scale(dv1, dt2[1] * r), Vec3.scale(dv2, dt1[1] * r)));
+    this.tangents = [tangent, tangent, tangent];
   }
 }
+
+// glm::vec3 & v0 = vertices[i+0];
+// glm::vec3 & v1 = vertices[i+1];
+// glm::vec3 & v2 = vertices[i+2];
+//
+// // Shortcuts for UVs
+// glm::vec2 & uv0 = uvs[i+0];
+// glm::vec2 & uv1 = uvs[i+1];
+// glm::vec2 & uv2 = uvs[i+2];
+//
+// // Edges of the triangle : position delta
+// glm::vec3 deltaPos1 = v1-v0;
+// glm::vec3 deltaPos2 = v2-v0;
+//
+// // UV delta
+// glm::vec2 deltaUV1 = uv1-uv0;
+// glm::vec2 deltaUV2 = uv2-uv0;
+
+// float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+// glm::vec3 tangent = (deltaPos1 * deltaUV2.y   - deltaPos2 * deltaUV1.y)*r;
+// glm::vec3 bitangent = (deltaPos2 * deltaUV1.x   - deltaPos1 * deltaUV2.x)*r;
