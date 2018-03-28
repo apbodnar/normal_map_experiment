@@ -7,5 +7,6 @@ varying vec3 outNormal;
 varying vec2 texCoords;
 
 void main(void) {
-  gl_FragColor = vec4(1, 0, 1, 1);
+  vec3 color = texture2D(diffuseMapTex,texCoords).rgb + texture2D(normalMapTex,texCoords).rgb;
+  gl_FragColor = vec4(color, 1);
 }

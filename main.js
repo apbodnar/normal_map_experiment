@@ -7,6 +7,7 @@ function NormalMapExperiment() {
   let assets = {};
   let programs = {};
   let textures = {};
+  let perspective = mat4.perspective(mat4.create(), 1.57, window.innerWidth / window.innerHeight, 0.1, 10) ;
 
   let isFramed = !!window.frameElement;
   let active = !isFramed;
@@ -52,33 +53,49 @@ function NormalMapExperiment() {
   function initPrograms(assets) {
     programs.draw = initProgram(
       "shader/draw",
-      ["normalMapTex", "diffuseMapTex"],
-      ["pos", "normal", "tangent"],
+      ["normalMapTex", "diffuseMapTex", "perspective"],
+      ["pos", "normal", "uv", "tangent"],
       assets
     );
   }
 
   function createImageTexture(image){
-    textures.env = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, textures.env);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    let texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    return texture;
   }
 
   function initBuffers(assets) {
     let posBuffer = gl.createBuffer();
     let normalBuffer = gl.createBuffer();
+    let uvBuffer = gl.createBuffer();
     let tangentBuffer = gl.createBuffer();
     let parsed = ObjLoader.parseMesh(assets["mesh/turtle.obj"]);
     let verts = [];
+    let norms = [];
+    let uvs = [];
     parsed.forEach((triangle) => {
       triangle.verts.forEach((v) => {
         v.forEach((vv) => { verts.push(vv)});
       })
-    })
+    });
+    parsed.forEach((triangle) => {
+      triangle.normals.forEach((n) => {
+        n.forEach((nn) => { norms.push(nn)});
+      })
+    });
+    parsed.forEach((triangle) => {
+      triangle.uvs.forEach((u) => {
+        u.forEach((uu) => { uvs.push(u)});
+      })
+    });
     console.log(verts);
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
@@ -86,9 +103,14 @@ function NormalMapExperiment() {
     gl.enableVertexAttribArray(programs.draw.attributes.pos);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(norms), gl.STATIC_DRAW);
     gl.vertexAttribPointer(programs.draw.attributes.normal, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(programs.draw.attributes.normal);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(uvs), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(programs.draw.attributes.uv, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(programs.draw.attributes.uv);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, tangentBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
@@ -124,14 +146,20 @@ function NormalMapExperiment() {
     gl.enableVertexAttribArray(program.attributes.pos);
     gl.vertexAttribPointer(program.attributes.normal, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(program.attributes.normal);
+    gl.vertexAttribPointer(program.attributes.uv, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(program.attributes.uv);
     gl.vertexAttribPointer(program.attributes.tangent, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(program.attributes.tangent);
-    gl.uniform1i(program.uniforms.diffuseMapTex, 0);
-    gl.uniform1i(program.uniforms.normalMapTex, 1);
+
+    gl.uniformMatrix4fv(program.uniforms.perspective, false, perspective);
     gl.activeTexture(gl.TEXTURE0);
+    //console.log(textures);
+    //debugger;
     gl.bindTexture(gl.TEXTURE_2D, textures.diffuseMapTex);
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, textures.normalMapTex);
+    gl.uniform1i(program.uniforms.diffuseMapTex, 0);
+    gl.uniform1i(program.uniforms.normalMapTex, 1);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 31248/3);
   }
@@ -153,6 +181,7 @@ function NormalMapExperiment() {
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.disable(gl.BLEND);
+    gl.enable(gl.DEPTH_TEST);
 
     tick();
   }

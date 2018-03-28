@@ -15,6 +15,19 @@ export function parseMesh(objText) {
   }
 
   function parseTriangle(indices){
+    for(let i=0; i<indices.length; i++){
+      for(let j=0; j<indices[i].length; j++){
+        switch (j) {
+          case 0:
+            indices[i][j] = indices[i][j] < 1 ? vertices.length + indices[i][j] + 1 : indices[i][j];
+            break;
+          case 1:
+            break;
+          case 2:
+            indices[i][j] = indices[i][j] < 1 ? meshNormals.length + indices[i][j] + 1 : indices[i][j];
+        }
+      }
+    }
     let tri = new Triangle(
       vertices[indices[0][0] - 1], vertices[indices[1][0] - 1], vertices[indices[2][0] - 1],
       uvs[indices[0][1] - 1], uvs[indices[1][1] - 1], uvs[indices[2][1] - 1],
