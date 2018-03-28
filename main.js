@@ -7,6 +7,7 @@ function NormalMapExperiment() {
   let assets = {};
   let programs = {};
   let textures = {};
+  let numTriangles = 0;
   let ticks = 0;
   let perspective = mat4.perspective(mat4.create(), 1, window.innerWidth / window.innerHeight, 0.1, 5);
   let worldView = mat4.create();
@@ -81,7 +82,7 @@ function NormalMapExperiment() {
     let normalBuffer = gl.createBuffer();
     let uvBuffer = gl.createBuffer();
     let tangentBuffer = gl.createBuffer();
-    let parsed = ObjLoader.parseMesh(assets["mesh/turtle.obj"]);
+    let parsed = ObjLoader.parseMesh(assets["mesh/lighthouse.obj"]);
     let verts = [];
     let norms = [];
     let uvs = [];
@@ -106,7 +107,8 @@ function NormalMapExperiment() {
         t.forEach((tt) => { tangents.push(tt)});
       })
     });
-    console.log(verts, norms, uvs, tangents);
+    console.log(tangents);
+    numTriangles = verts.length / 3;
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
     gl.vertexAttribPointer(programs.draw.attributes.pos, 3, gl.FLOAT, false, 0, 0);
@@ -126,8 +128,10 @@ function NormalMapExperiment() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(tangents), gl.STATIC_DRAW);
     gl.vertexAttribPointer(programs.draw.attributes.tangent, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(programs.draw.attributes.tangent);
-    textures.diffuseMapTex = createImageTexture(assets["texture/turtle.png"]);
-    textures.normalMapTex = createImageTexture(assets["texture/knit_normal.jpg"]);
+    // textures.diffuseMapTex = createImageTexture(assets["texture/turtle.png"]);
+    // textures.normalMapTex = createImageTexture(assets["texture/brick.png"]);
+    textures.diffuseMapTex = createImageTexture(assets["texture/lighthouse.png"]);
+    textures.normalMapTex = createImageTexture(assets["texture/brick.png"]);
   }
 
   function initEvents() {
@@ -170,7 +174,7 @@ function NormalMapExperiment() {
     gl.uniform1i(program.uniforms.diffuseMapTex, 0);
     gl.uniform1i(program.uniforms.normalMapTex, 1);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.drawArrays(gl.TRIANGLES, 0, 31248/3);
+    gl.drawArrays(gl.TRIANGLES, 0, numTriangles);
   }
 
 
@@ -200,10 +204,9 @@ function NormalMapExperiment() {
   let pathSet = new Set([
     "shader/draw.vs",
     "shader/draw.fs",
-    "texture/knit_diffuse.jpg",
-    "texture/knit_normal.jpg",
-    "texture/turtle.png",
-    "mesh/turtle.obj"
+    "texture/brick.png",
+    "texture/lighthouse.png",
+    "mesh/lighthouse.obj"
   ]);
   Utility.loadAll(Array.from(pathSet), start);
 }
