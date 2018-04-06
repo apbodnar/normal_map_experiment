@@ -194,7 +194,7 @@ function NormalMapExperiment() {
     initEvents();
     console.log(programs.draw.attributes)
 
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearColor(0.3, 0.5, 0.9, 1.0);
     gl.disable(gl.BLEND);
     gl.enable(gl.DEPTH_TEST);
 
